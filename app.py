@@ -3,9 +3,10 @@ import os
 import schedule
 import threading
 import time
+import requests
 
 app = Flask(__name__)
-app.secret_key = "chave_secreta"  # Necessária para usar sessões
+app.secret_key = os.environ.get("SECRET_KEY", "chave_secreta")  # Use variáveis de ambiente para segurança
 
 # Lista de barbeiros simulando uma base de dados
 barbeiros = [
@@ -23,7 +24,6 @@ def resetar_agendamentos_diariamente():
     print("Resetando agendamentos...")
     agendamentos = []  # Limpa a lista de agendamentos
 
-# **ATIVAÇÃO DA LIMPEZA DIÁRIA DOS AGENDAMENTOS**
 # Agendar a limpeza dos agendamentos diariamente às 00:00
 schedule.every().day.at("00:00").do(resetar_agendamentos_diariamente)
 
@@ -32,6 +32,17 @@ def iniciar_agendador():
     while True:
         schedule.run_pending()
         time.sleep(1)
+
+# Função para manter o app ativo
+def manter_app_ativo():
+    try:
+        requests.get("https://sistema-barbearia.onrender.com/")  # Substitua pela URL do seu aplicativo
+        print("App mantido ativo.")
+    except Exception as e:
+        print(f"Erro ao manter o app ativo: {e}")
+
+# Agendar a manutenção a cada 10 minutos
+schedule.every(10).minutes.do(manter_app_ativo)
 
 @app.route("/")
 def home():
@@ -142,7 +153,7 @@ def confirmar(agendamento_id):
         return "Erro ao confirmar agendamento.", 500
 
 if __name__ == "__main__":
-    # **INÍCIO DO AGENDADOR EM UM THREAD SEPARADO**
+    # Início do agendador em um thread separado
     threading.Thread(target=iniciar_agendador, daemon=True).start()
     
     port = int(os.environ.get("PORT", 5000))  # Pega a porta do ambiente ou usa 5000
